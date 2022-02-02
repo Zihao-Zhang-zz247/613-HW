@@ -72,3 +72,13 @@ for(index in 1:nrow(dat_ex2)){
   ra_list = c(ra_list,temp)
 }
 ra_list
+
+# 4.1 
+
+griddf = expand.grid(latcoords = seq(-5,5,0.01),lngcoords = seq(-5,5,0.01))
+fun4 = function(x,y){
+  v = (1.5-x+x*y)^2 + (2.25-x+x*y^2)^2 + (2.625-x+x*y^3)^2
+  return(v)
+}
+vs = fun4(griddf$latcoords,griddf$lngcoords)
+griddf[which(vs==min(vs)),] # x=3,y=0.5,min_value=0
