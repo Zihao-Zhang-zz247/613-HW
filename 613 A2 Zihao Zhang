@@ -1,10 +1,13 @@
 # Homework 2 
 
 # Data
-# My understanding of the problem is that the data should be datind2009 instead of datind2009-2019
-# and I think that someone's wage is zero is reasonable, so i didn't delete this kind of data
-datind2009 <- fread("/Users/zhangzihao/Desktop/duke/613/HW/a1/Data/datind2009.csv", colClasses=c(idind="character",idmen="character"), header=T)
-datind2009 <- datind2009[,-1] %>% select(age,wage) %>% na.omit() 
+# My understanding of the problem is that the data should be 
+# datind2009 instead of datind2009-2019
+# and I think that someone's wage is zero is reasonable, 
+#so i didn't delete this kind of data
+datind2009 <- fread("/Users/zhangzihao/Desktop/duke/613/HW/a1/Data/datind2009.csv",
+                    colClasses=c(idind="character",idmen="character"), header=T)
+datind2009 <- datind2009[,9:10] %>% na.omit()
 
 # Exercise 1
 # 1
@@ -57,9 +60,9 @@ bootstrap = function(a,b,n){
 }
   
 apply(bootstrap(x,y,49), MARGIN = 1, sd)
-# 4.91395
+# 4.904961
 apply(bootstrap(x,y,499), MARGIN = 1, sd)
-# 5.197681
+# 5.240771
 # doing 499 times is more closer to the result of standard formula
 
 # Exercise 2
@@ -79,7 +82,8 @@ data2 <- datind %>% filter(year != "2019") %>%  filter(year != "2004")
 
 # 1
 breaks <- c(-Inf,18,25,30,35,40,45,50,55,60,Inf)
-labels <- c('baby','18-25', '26-30', '31-35', '36-40', '41-45','46-50','51-55', '56-60', '60+');
+labels <- c('baby','18-25', '26-30', '31-35', '36-40', 
+            '41-45','46-50','51-55', '56-60', '60+');
 data2[,'ag'] <- cut(data2$age, breaks = breaks, labels = labels)
 
 # 2
@@ -95,17 +99,21 @@ p + geom_col(position = "dodge")
 p + geom_col()
 # To show the proportion of each age group
 # The overall wage level shows a trend of increasing year by year
-# In general, the wages of the elderly have increased compared with the young
+# In general, the wages of the elderly(especially 56-60) have increased 
+# compared with the young
 
 # 3 
-data2_1 <- datind %>% select(age,year,wage) %>% filter(year != "2019") %>%  filter(year != "2004") %>% na.omit()
+data2_1 <- datind %>% select(age,year,wage) %>% filter(year != "2019") %>% 
+  filter(year != "2004") %>% na.omit()
 x_year =  data2_1 %>% select(age,year) %>% mutate(int = 1) %>% as.matrix()
 y_year = data2_1$wage %>% as.matrix()
 colnames(y) = c('wage')
 beta_hat_2 = solve(t(x_year) %*% x_year) %*% t(x_year) %*% y_year
 beta_hat_2
 # -186.879
-# because we only need to observe the coefficient of 'age', i don't add dummy variables for each year and i will conduct this process in exercise 4
+# because we only need to observe the coefficient of 'age', 
+# i don't add dummy variables for each year 
+# and i will conduct this process in exercise 4
 
 reg <- lm(data2_1$wage ~ data2_1$age + as.factor(data2_1$year))
 summary(reg)
@@ -176,7 +184,7 @@ x_3_2 = datind2007$wage
 ntry = 1000
 out_3_2 = mat.or.vec(ntry,4)
 for (i in 1:ntry){
-  start = start = runif(3,-5,5)
+  start = runif(3,-5,5)
   res = optim(start,
               fn=probitfunc2,
               method="BFGS",
@@ -193,7 +201,8 @@ filter(out_3_2,out_3_2$'-like' == min(out_3_2$'-like'))
 
 # Exercise 4
 # 1 
-data4 <- datind %>% filter(year != "2019") %>%  filter(year != "2004") %>% filter(year != "2018") %>% filter(year != "2017") %>% filter(year != "2016")
+data4 <- datind %>% filter(year != "2019") %>%  filter(year != "2004") %>%
+  filter(year != "2018") %>% filter(year != "2017") %>% filter(year != "2016")
 data4 <- data4 %>% filter(empstat != "Inactive") %>% filter(empstat != 'Retired')
 
 # 2
@@ -235,7 +244,9 @@ probitfunc3 = function(beta,x1,y,
                        year10, year11, year12, year13, 
                        year14, year15)
 {
-  xbeta  = beta[1] + beta[2]*x1 + beta[3]*year06 + beta[4]*year07 + beta[5]*year08 + beta[6]*year09 + beta[7]*year10 + beta[8]*year11+ beta[9]*year12 + beta[10]*year13 + beta[11]*year14 + beta[12]*year15
+  xbeta  = beta[1] + beta[2]*x1 + beta[3]*year06 + beta[4]*year07 + 
+    beta[5]*year08 + beta[6]*year09 + beta[7]*year10 + beta[8]*year11+ 
+    beta[9]*year12 + beta[10]*year13 + beta[11]*year14 + beta[12]*year15
   pr = pnorm(xbeta)
   pr[pr>0.999999] = 0.999999
   pr[pr<0.000001] = 0.000001
@@ -278,7 +289,9 @@ logitfunc = function(beta,x1,y,
                      year10, year11, year12, year13, 
                      year14, year15)
 {
-  xbeta  = beta[1] + beta[2]*x1 + beta[3]*year06 + beta[4]*year07 + beta[5]*year08 + beta[6]*year09 + beta[7]*year10 + beta[8]*year11+ beta[9]*year12 + beta[10]*year13 + beta[11]*year14 + beta[12]*year15
+  xbeta  = beta[1] + beta[2]*x1 + beta[3]*year06 + beta[4]*year07 +
+    beta[5]*year08 + beta[6]*year09 + beta[7]*year10 +
+    beta[8]*year11+ beta[9]*year12 + beta[10]*year13 + beta[11]*year14 + beta[12]*year15
   pr = 1/(1+exp(-xbeta))
   pr[pr>0.999999] = 0.999999
   pr[pr<0.000001] = 0.000001
@@ -397,7 +410,8 @@ for (i in 1:12){
 linear_sig <- cbind(t(linear_out_4),significance)
 colnames(linear_sig) <- c('variables','significance_5%')
 linear_sig
-
+# in all models, 'age' is significant
+# and all coefficients of 'age' are positive, which means there is a positively significant effect
 
 # Exercise 5
 # 1
@@ -440,8 +454,6 @@ logit_me
 
 # 2 
 # it is a little bit difficult
-
-
 
 
 
