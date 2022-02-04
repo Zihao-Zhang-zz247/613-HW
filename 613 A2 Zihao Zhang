@@ -176,7 +176,7 @@ x_3_2 = datind2007$wage
 ntry = 1000
 out_3_2 = mat.or.vec(ntry,4)
 for (i in 1:ntry){
-  start = c(runif(1,-0.5,0.5),runif(1,-0.01,0.01),runif(1,-0.0001,0.0001))
+  start = start = runif(3,-5,5)
   res = optim(start,
               fn=probitfunc2,
               method="BFGS",
