@@ -1,0 +1,286 @@
+library(tidyverse)
+library(data.table)
+getwd()
+setwd("/Users/zhangzihao/Desktop/duke/613/HW/a3/Data")
+datstu <- fread("datstu_v2.csv")
+datsss <- fread("datsss.csv")
+datjss <- fread("datjss.csv")
+
+# 1
+# 1.1
+programs <- datstu[,11:16] %>% unlist() %>% unique()
+length(programs) #33
+nrow(datstu) #340823
+unique(datsss$schoolcode) %>% length() #898
+
+# 1.2
+c1 <- datstu %>% select(schoolcode1, choicepgm1) 
+c2 <- datstu %>% select(schoolcode2, choicepgm2)
+c3 <- datstu %>% select(schoolcode3, choicepgm3) 
+c4 <- datstu %>% select(schoolcode4, choicepgm4) 
+c5 <- datstu %>% select(schoolcode5, choicepgm5)
+c6 <- datstu %>% select(schoolcode6, choicepgm6) 
+rbind(c1,c2,c3,c4,c5,c6,use.names=F) %>% unique() %>% nrow() #3086
+
+# 1.3 
+
+sch_dis_1 <- datsss[,3:4]
+sch_dis_1 <- sch_dis_1[!duplicated(sch_dis_1$schoolcode),]
+sch_dis_2 <- datstu[,c(5:10, 17)]
+sch_dis_2 <- pivot_longer(sch_dis_2, !jssdistrict, values_to = "schoolcode")
+sch_dis <- left_join(sch_dis_2,sch_dis_1,by="schoolcode")
+
+sch_dis$same_dis = 0
+for (i in 1:nrow(sch_dis)){
+  if (isTRUE(c(sch_dis$jssdistrict[i]) == c(sch_dis$sssdistrict[i]))){
+    sch_dis$same_dis[i] = 1
+    }
+}
+
+sch_dis$number_same = 0
+for (i in 1:340823){
+  sch_dis$number_same[c((i-1)*6+1)] = sum(sch_dis$same_dis[c((i-1)*6+1):c(i*6)])
+}
+
+a <- filter(sch_dis,sch_dis$number_same >= 2)
+nrow(a)
+
+# 1.4
+admit <- datstu
+admit <- cbind(admit,datstu[,1])
+admit <- admit[order(rankplace,)]
+x <- matrix(0,nrow = nrow(admit))
+admit <- cbind(admit,x)
+admit <- admit[,-19]
+colnames(admit)[19] <- c("school_admit")
+admit <- admit %>% na.omit()
+count <- admit %>% group_by(rankplace) %>% count()
+for (i in 1:42361){
+  admit[i,19] = admit[i,5]
+}
+for (i in 42362:72822){
+  admit[i,19] = admit[i,6]
+}
+for (i in 72823:100658){
+  admit[i,19] = admit[i,7]
+}
+for (i in 100659:124926){
+  admit[i,19] = admit[i,8]
+}
+for (i in 124927:128801){
+  admit[i,19] = admit[i,9]
+}
+for (i in 128802:131670){
+  admit[i,19] = admit[i,10]
+}
+number_adimit <- admit %>% group_by(school_admit) %>% count()
+number_adimit
+
+#1.5
+admit_sch <- admit[,8:9]
+cut_off <- left_join(datstu,admit_sch,by = "V1") %>% na.omit()
+cut_off <- cut_off[,c(2,19)]
+cut_off %>% group_by(school_admit) %>% summarise(min(score))
+
+# 1.6
+cut_off %>% group_by(school_admit) %>% summarise(mean(score))
+
+# 2
+# we need to calculate how many students each program admitted 
+# I will use the old method to construct a more specific list
+pro <- datstu[,c(2,5:16,18)]
+pro <- cbind(pro,datstu[,1])
+pro <- pro[order(rankplace,)]
+x <- matrix(0,nrow = nrow(pro))
+pro <- cbind(pro,x)
+colnames(pro)[16] <- c("school_admit")
+pro <- pro %>% na.omit()
+count <- pro %>% group_by(rankplace) %>% count()
+for (i in 1:as.numeric(count[1,2])){
+  pro[i,16] = pro[i,2]
+}
+for (i in as.numeric(count[1,2]+1):as.numeric(count[1,2]+count[2,2])){
+  pro[i,16] = pro[i,3]
+}
+for (i in as.numeric(count[2,2]+1):as.numeric(count[1,2]+count[2,2]+count[3,2])){
+  pro[i,16] = pro[i,4]
+}
+for (i in as.numeric(count[3,2]+1):as.numeric(count[1,2]+count[2,2]+count[3,2]+count[4,2])){
+  pro[i,16] = pro[i,5]
+}
+for (i in as.numeric(count[4,2]+1):as.numeric(count[1,2]+count[2,2]+count[3,2]+count[4,2]+count[5,2])){
+  pro[i,16] = pro[i,6]
+}
+for (i in as.numeric(count[5,2]+1):as.numeric(count[1,2]+count[2,2]+count[3,2]+count[4,2]+count[5,2]+count[6,2])){
+  pro[i,16] = pro[i,7]
+}
+
+# I slightly improve the last method, then is "program"
+y <- matrix("NA",nrow = nrow(pro))
+pro <- cbind(pro,y)
+colnames(pro)[17] <- c("program_admit")
+for (i in 1:as.numeric(count[1,2])){
+  pro[i,17] = pro[i,8]
+}
+for (i in as.numeric(count[1,2]+1):as.numeric(count[1,2]+count[2,2])){
+  pro[i,17] = pro[i,9]
+}
+for (i in as.numeric(count[2,2]+1):as.numeric(count[1,2]+count[2,2]+count[3,2])){
+  pro[i,17] = pro[i,10]
+}
+for (i in as.numeric(count[3,2]+1):as.numeric(count[1,2]+count[2,2]+count[3,2]+count[4,2])){
+  pro[i,17] = pro[i,11]
+}
+for (i in as.numeric(count[4,2]+1):as.numeric(count[1,2]+count[2,2]+count[3,2]+count[4,2]+count[5,2])){
+  pro[i,17] = pro[i,12]
+}
+for (i in as.numeric(count[5,2]+1):as.numeric(count[1,2]+count[2,2]+count[3,2]+count[4,2]+count[5,2]+count[6,2])){
+  pro[i,17] = pro[i,13]
+}
+
+new_pro <- pro[,c(1,15:17)]
+new_pro <- new_pro %>% na.omit()
+new_pro <- new_pro[!apply(new_pro == "", 1, all),] # delete the blank
+new_pro <- new_pro %>% mutate(sch_pro = paste0(school_admit,sep = ",",program_admit))
+colnames(new_pro)[3] <- "schoolcode"
+new_pro2 <- left_join(new_pro,datsss,by = "schoolcode") %>% na.omit()
+new_pro2 <- new_pro2[!apply(new_pro2 == "", 1, all),] # delete the blank
+
+new_an <- new_pro2 %>% group_by(sch_pro) %>% count()
+colnames(new_an) <- c("sch_pro","admit_number")
+new_pro2 <- left_join(new_pro2,new_an,by = "sch_pro")
+
+cutoff <- new_pro %>% group_by(sch_pro) %>% summarise(min(score))
+cutoff <- cutoff[-1,]
+new_pro2 <- left_join(new_pro2,cutoff,by = "sch_pro")
+
+quality <- new_pro %>% group_by(sch_pro) %>% summarise(mean(score))
+quality <- quality[-1,]
+new_pro2 <- left_join(new_pro2,quality,by = "sch_pro")
+
+school <- new_pro2[,c(5,7:13)]
+school <- school %>% group_by(sch_pro) %>% filter (!duplicated(sch_pro))
+
+# 3 
+sch <- admit
+colnames(sch)[19] <- "schoolcode"
+distant <- left_join(sch,datsss,by="schoolcode")
+distant <- select(distant,c("V1.x","schoolcode","jssdistrict"))
+distant <- distant[!duplicated(distant$schoolcode),]
+colnames(distant)[1] <- "student"
+y <- datjss
+distant <- left_join(distant,y,by = "jssdistrict")
+colnames(distant)[5] <- "jsslong"
+colnames(distant)[6] <- "jsslat"
+distant <- left_join(distant,datsss,by = "schoolcode")
+distant <- distant %>% select(ssslong,jsslong,jsslat,ssslat)
+distant <- distant %>% 
+  mutate(dist = sqrt( (69.172*(ssslong - jsslong) * cos(jsslat/57.3)) ^2  +  (69.172 * (ssslat - jsslat))^2 ))
+distant <- na.omit(distant)
+distant
+
+# 4
+# 4.1
+scode_rev <- datsss[,3]
+scode_rev <- scode_rev[!duplicated(scode_rev$schoolcode),]
+scode_rev$scode_rev <- substr(scode_rev$schoolcode, 1, 3) 
+
+# it is a list. then we may change the data in the datstu
+
+datstu_4 <- datstu 
+datstu_4$scode_rev1 <- substr(datstu_4$schoolcode1, 1, 3) 
+datstu_4$scode_rev2 <- substr(datstu_4$schoolcode2, 1, 3) 
+datstu_4$scode_rev3 <- substr(datstu_4$schoolcode3, 1, 3) 
+datstu_4$scode_rev4 <- substr(datstu_4$schoolcode4, 1, 3) 
+datstu_4$scode_rev5 <- substr(datstu_4$schoolcode5, 1, 3)
+datstu_4$scode_rev6 <- substr(datstu_4$schoolcode6, 1, 3) 
+datstu_4
+
+# 4.2
+science <- c("General Science")
+arts <- c("General Arts", "Visual Arts")
+economics <- c("Business", "Home Economics")
+
+datstu_4 <- within(datstu_4, {
+  pgm_rev1 = "others"
+  pgm_rev1[choicepgm1 %in% arts] = "arts"
+  pgm_rev1[choicepgm1 %in% economics] = "economics"
+  pgm_rev1[choicepgm1 %in% science] = "science"
+  pgm_rev1[is.na(pgm_rev1) == T] = "others"
+  
+  pgm_rev2 = "others"
+  pgm_rev2[choicepgm2 %in% arts] = "arts"
+  pgm_rev2[choicepgm2 %in% economics] = "economics"
+  pgm_rev2[choicepgm2 %in% science] = "science"
+  pgm_rev2[is.na(pgm_rev2) == T] = "others"
+  
+  pgm_rev3 = "others"
+  pgm_rev3[choicepgm3 %in% arts] = "arts"
+  pgm_rev3[choicepgm3 %in% economics] = "economics"
+  pgm_rev3[choicepgm3 %in% science] = "science"
+  pgm_rev3[is.na(pgm_rev3) == T] = "others"
+  
+  pgm_rev4 = "others"
+  pgm_rev4[choicepgm4 %in% arts] = "arts"
+  pgm_rev4[choicepgm4 %in% economics] = "economics"
+  pgm_rev4[choicepgm4 %in% science] = "science"
+  pgm_rev4[is.na(pgm_rev4) == T] = "others"
+  
+  pgm_rev5 = "others"
+  pgm_rev5[choicepgm5 %in% arts] = "arts"
+  pgm_rev5[choicepgm5 %in% economics] = "economics"
+  pgm_rev5[choicepgm5 %in% science] = "science"
+  pgm_rev5[is.na(pgm_rev5) == T] = "others"
+  
+  pgm_rev6 = "others"
+  pgm_rev6[choicepgm6 %in% arts] = "arts"
+  pgm_rev6[choicepgm6 %in% economics] = "economics"
+  pgm_rev6[choicepgm6 %in% science] = "science"
+  pgm_rev6[is.na(pgm_rev6) == T] = "others"
+})
+
+# 4.3
+datstu_4 <- datstu_4 %>% mutate(choice_rev1 = paste0(scode_rev1,sep = ",",pgm_rev1)) %>%
+  mutate(choice_rev2 = paste0(scode_rev2,sep = ",",pgm_rev2)) %>%
+  mutate(choice_rev3 = paste0(scode_rev3,sep = ",",pgm_rev3)) %>%
+  mutate(choice_rev4 = paste0(scode_rev4,sep = ",",pgm_rev4)) %>%
+  mutate(choice_rev5 = paste0(scode_rev5,sep = ",",pgm_rev5)) %>%
+  mutate(choice_rev6 = paste0(scode_rev6,sep = ",",pgm_rev6))
+
+# 4.4
+datstu4 <- datstu_4 %>% select(V1,score,rankplace,choice_rev1,choice_rev2,choice_rev3,choice_rev4,choice_rev5,choice_rev6)
+datstu4 <- datstu4[order(rankplace,)]
+count <- datstu4 %>% group_by(rankplace) %>% count()
+for (i in 1:as.numeric(count[1,2])){
+  datstu4$admit[i] = datstu4$choice_rev1[i]
+}
+for (i in as.numeric(count[1,2]+1):as.numeric(count[1,2]+count[2,2])){
+  datstu4$admit[i] = datstu4$choice_rev2[i]
+}
+for (i in as.numeric(count[2,2]+1):as.numeric(count[1,2]+count[2,2]+count[3,2])){
+  datstu4$admit[i] = datstu4$choice_rev3[i]
+}
+for (i in as.numeric(count[3,2]+1):as.numeric(count[1,2]+count[2,2]+count[3,2]+count[4,2])){
+  datstu4$admit[i] = datstu4$choice_rev4[i]
+}
+for (i in as.numeric(count[4,2]+1):as.numeric(count[1,2]+count[2,2]+count[3,2]+count[4,2]+count[5,2])){
+  datstu4$admit[i] = datstu4$choice_rev5[i]
+}
+for (i in as.numeric(count[5,2]+1):as.numeric(count[1,2]+count[2,2]+count[3,2]+count[4,2]+count[5,2]+count[6,2])){
+  datstu4$admit[i] = datstu4$choice_rev6[i]
+}
+
+cutoff <-datstu4 %>% group_by(admit) %>% summarise(min(score))
+cutoff <- cutoff[-1,]
+datstu_new <- left_join(datstu4,cutoff,by = "admit")
+
+quality <-datstu_new %>% group_by(admit) %>% summarise(mean(score))
+quality <- quality[-1,]
+datstu_new <- left_join(datstu_new,quality,by = "admit")
+datstu_new <- datstu_new %>% group_by(admit) %>% filter (!duplicated(admit))
+new_cq <- datstu_new[,10:12] %>% na.omit()
+
+
+# 4.5
+datstu5 <- datstu_4[order(-score), ] 
+datstu5 <- datstu5[1:20000,]
