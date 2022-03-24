@@ -284,3 +284,189 @@ new_cq <- datstu_new[,10:12] %>% na.omit()
 # 4.5
 datstu5 <- datstu_4[order(-score), ] 
 datstu5 <- datstu5[1:20000,]
+
+# 5
+data <- datstu5
+data$choice_rev1 <- as.numeric(as.factor(data$choice_rev1))
+score <- select(data,score)
+choice <- select(data,choice_rev1)
+n_choice <- choice[!duplicated(choice$choice_rev1),]
+nrow(n_choice)
+score <- as.matrix(score)
+
+like_fun <- function(par,score,choice,data){
+  n_i = nrow(score)
+  n_j = nrow(n_choice)
+  out = mat.or.vec(n_i,n_j)
+  
+  par1 = par[1:n_j-1]
+  par2 = par[n_j:(2*n_j-2)]
+  
+  out[,1] = 0
+  
+  for (j in 1:(n_j-1)){
+    out[,j+1] = par1[j] + par2[j] * score
+  }
+  
+  prob = exp(out)
+  prob = sweep(prob, MARGIN = 1, STATS = rowSums(prob), FUN = "/")
+  
+  prob_choice = NULL
+  
+  for (z in 1:n_i){
+    prob_choice[z] = prob[z,]
+  }
+  prob_choice[prob_choice>0.99999] = 0.99999
+  prob_choice[prob_choice<0.00001] = 0.00001
+  
+  like = sum(log(prob_choice))
+  return(-like)
+}
+
+# Estimate parameters and compute the marginal effect of the proposed model
+# Estimate parameters
+n <- runif(490,-1,1)
+result = optim(n,
+               fn=like_fun,
+               method = 'BFGS',
+               control = list(trace = 6, maxit = 3000),
+               score = score,
+               choice = choice,
+               data = data
+               )
+
+out_logit <- result
+result$par
+result$value 
+
+# Marginal effect
+prob_fun <- function(par,score,choice,data){
+  n_i = nrow(score)
+  n_j = nrow(n_choice)
+  out = mat.or.vec(n_i,n_j)
+  
+  par1 = par[1:n_j-1]
+  par2 = par[n_j:(2*n_j-2)]
+  
+  out[,1] = 0
+  
+  for (j in 2:(n_j-1)){
+    out[,j+1] = par1[j] + par2[j] * score
+  }
+  
+  return(out)
+  }
+
+param <- result$par
+prob <- prob_fun(param, score, choice, data)
+prob <-  exp(prob)
+prob <-  sweep(prob, MARGIN = 1, STATS = rowSums(prob), FUN = "/")
+b_i_bar <- apply(prob,1,function(x) return(sum(b_j*x)))
+Mar_e <- data.frame(prob *(b_j - b_i_bar) )
+apply(Mar_e, MARGIN = 2, mean)
+
+# 6
+install.packages("mlogit")
+install.packages("dfidx")
+library(dfidx)
+library(mlogit)
+
+quality1 <- quality
+colnames(quality1)[1] <- "choice_rev2"
+data1 <- left_join(data,quality1,by = "choice_rev2")
+# the "choice_rev1" has been changed, so i choose choice_rev2, which won't change the mean
+
+con_choise <- data1$choice_rev1
+con_quality <- data1$quality
+
+data2 <-  mlogit.data(data1, varying = 37:282, shape = "wide", sep = '_', choice = "choice_rev1")
+# i failed in this step, but i will type the function
+
+Con_fun1 <- function(par, choice, quality) {
+  choice = con_choice
+  quality = con_quality 
+  n_i = nrow(data) 
+  n_j = 246 # same with above 
+  out = mat.or.vec( n_i,n_j )
+  
+  out[,1] = 0
+  
+  int = par[1:n_j-1]
+  qua = par[ (n_j) ]
+  for (i in 1:n_i) {
+    out[i,] = qua * quality[i]
+  }
+  for (i in 2:n_j) {
+    out[,i] = out[,i] + int[ (i-1) ]
+  }
+  prob = exp(out)
+  prob = sweep(prob, MARGIN=1, FUN="/", STATS=rowSums(prob)) 
+  prob_choice = NULL
+  for (j in j:n_i){
+    prob_choice[j] = prob[j, choice_rev1[j] ]
+  }
+  prob_choice[prob_choice >0.999999] = 0.999999
+  prob_choice[prob_choice <0.000001] = 0.000001 
+  like = sum( log(prob_choice)) 
+  return(- like) 
+}
+
+# Marginal effect
+prob_fun <- function(par,quality,choice,data){
+  n_i = nrow(quality)
+  n_j = nrow(n_choice)
+  out = mat.or.vec(n_i,n_j)
+  
+  par1 = par[1:n_j-1]
+  par2 = par[n_j]
+  
+  out = par2 *quality[,1]
+  
+  for (j in 2:(n_j-1)){
+    out = cbind(par2*quality[,j+1]+out,par1[j])
+  }
+  
+  return(out)
+}
+
+# 7
+# 7.1 
+# we should choose the second model. 
+# because in the second model, removing "others" has more influence on school's characteristics rather than individual's.
+
+# 7.2
+library(stringr)
+out_other <- data %>% filter( str_detect(choice_rev1, "others") == T ) 
+# delete the "other"
+# i failed in conditional logit, but i will show the function.
+
+Con_fun1 <- function(par, choice, quality) {
+  choice = con_choice
+  quality = con_quality 
+  n_i = nrow(data) 
+  n_j = 246
+  out = mat.or.vec( n_i,n_j )
+  
+  out[,1] = 0
+  
+  int = par[1:n_j-1]
+  qua = par[ (n_j) ]
+  for (i in 1:n_i) {
+    out[i,] = qua * quality[i]
+  }
+  for (i in 2:n_j) {
+    out[,i] = out[,i] + int[ (i-1) ]
+  }
+  prob = exp(out)
+  prob = sweep(prob, MARGIN=1, FUN="/", STATS=rowSums(prob)) 
+  prob_choice = NULL
+  for (j in j:n_i){
+    prob_choice[j] = prob[j, choice_rev1[j] ]
+  }
+  prob_choice[prob_choice >0.999999] = 0.999999
+  prob_choice[prob_choice <0.000001] = 0.000001 
+  like = sum( log(prob_choice)) 
+  return(- like) 
+}
+
+# 7.3
