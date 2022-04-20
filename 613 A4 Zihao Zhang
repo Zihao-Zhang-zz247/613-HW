@@ -251,6 +251,8 @@ results$par
 
 # The difference is obvious, so we can assume that the absence of the data of low earning or zero may be not random. 
 # It influences the result of OLS
+# the coefficients of work experience and sex are negative showing a negative correlations between these variables and income. And the edu and age have positive correlation with income
+# Specifically, for example, when all other conditions fixed, male earns 12796 more than female
 
 # 3
 # 3.1 
