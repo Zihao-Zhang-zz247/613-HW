@@ -270,6 +270,7 @@ p + geom_histogram() +
 # we can use a two-step model to solve the censoring problem
 # Similar with question 2.3, we can firstly explain top-coded incidents and then we can use the inverse mills ratio to estimate at the second stage.
 
+# 3.3
 data_3.2 <- dat_A4
 
 for (i in 1:nrow(data_3.2)){
@@ -316,6 +317,7 @@ summary(ols)
 ols$coefficients
 results$par
 
+# 3.4
 # we can find the absolute value of the coefficient of each variable is smaller if we ignore the censoring problem
 # it means that we underestimate the effect.
 
